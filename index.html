@@ -21,7 +21,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: #f5f5f5;
+            background: #000000;
         }
         canvas {
             display: block;
@@ -87,7 +87,7 @@
             scene.add(imageMesh);
 
             const buttonGeometry = new THREE.PlaneGeometry(0.45, 0.45);  // Size of the hidden button
-            const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.5 }); // Invisible
+            const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0 }); // Invisible
             const buttonMesh = new THREE.Mesh(buttonGeometry, buttonMaterial);
 
             buttonMesh.position.set(-0.9, -1.12, 0.01);  // Adjust position inside the image
@@ -234,6 +234,7 @@
         let state = 0;
         window.addEventListener('click', () => {
             if(state == 0){
+                state = 1;
                 gsap.killTweensOf(envelopeGroup.rotation); 
                 gsap.to(envelopeGroup.rotation, { z: 0, y: 0, duration: 0.2 });
                 backButton.style.display = 'block';
@@ -244,8 +245,7 @@
                         gsap.to(topFlap.position, {z:-0.001});
                         gsap.to(envelopeGroup.position, { y: -10, duration: 1, ease: "power2.inOut" });
                         sleep(500).then(() => {
-                            gsap.to(camera.position, {z: -6, duration:1, ease: "power1.inOut"});
-                            state = 1;
+                            gsap.to(camera.position, {z: -7, duration:1, ease: "power1.inOut"});
                         })
                     })
                 })
@@ -267,10 +267,10 @@
                     gsap.to(scene.rotation, { y: scene.rotation.y + Math.PI, duration: 1, ease: "power2.inOut" });
                     sleep(600).then(() => {
                         startJiggleAnimation();
+                        state = -1;
                     })
                 })
             })
-            state = -1;
         }
 
         // 🌟 Orbit Controls
