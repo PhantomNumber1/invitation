@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Invitation Envelope</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js",
+                "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.2/index.js",
+                "OrbitControls": "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/controls/OrbitControls.js"
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <button id="backButton" style="
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        display: none; /* Hidden initially */
+        cursor: pointer;
+    " onclick="resetScene()">Back</button>
+    <script type="module">
+        const urlParams = new URLSearchParams(window.location.search);
+        const name = urlParams.get('name') || "Guest"; 
+        let hasOpened = false;
+        const backButton = document.getElementById('backButton');
+
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'OrbitControls';
+        import gsap from 'gsap';
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+
+        // 🌟 Scene, Camera & Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, -10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        renderer.setClearColor(0x000000, 1); // Gray background
+
+        renderer.toneMapping = THREE.LinearToneMapping;
+        renderer.toneMappingExposure = 1;
+
+
+
+        const envelopeGroup = new THREE.Group(); 
+
+        // ✅ Load the Invitation Image as a Texture Instead of CSS3DObject
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('invite.png', function(texture) {
+            texture.colorSpace = THREE.SRGBColorSpace; // Ensure proper color rendering
+            texture.encoding = THREE.sRGBEncoding;
+            texture.needsUpdate = true;
+
+            texture.minFilter = THREE.LinearFilter;  // ✅ Avoids blurring
+            texture.magFilter = THREE.NearestFilter;  // ✅ Keeps pixels sharp
+            texture.generateMipmaps = false;  // ✅ Disables mipmaps
+
+            const imageMaterial = new THREE.MeshBasicMaterial({ map: texture });
+            const imageGeometry = new THREE.PlaneGeometry(3, 4.5); // Match aspect ratio
+            const imageMesh = new THREE.Mesh(imageGeometry, imageMaterial);
+            scene.add(imageMesh);
+
+            const buttonGeometry = new THREE.PlaneGeometry(0.45, 0.45);  // Size of the hidden button
+            const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.5 }); // Invisible
+            const buttonMesh = new THREE.Mesh(buttonGeometry, buttonMaterial);
+
+            buttonMesh.position.set(-0.9, -1.12, 0.01);  // Adjust position inside the image
+            imageMesh.add(buttonMesh);  // Attach the button to the image
+
+            // 🔹 Click Event Listener
+            window.addEventListener('click', (event) => {
+                // Convert mouse coordinates to Three.js normalized device coordinates
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                // Raycast to check if the button is clicked
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(buttonMesh);
+
+                if (intersects.length > 0) {
+                    console.log("Button Clicked!");
+                    alert("Hidden Button Clicked!");
+                    // Trigger action (e.g., open URL, show UI, etc.)
+                }
+            });
+        });
+
+        textureLoader.load('yri.png', function(texture) {
+    const imageMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+    const imageGeometry = new THREE.PlaneGeometry(3, 4.5);
+    const imageMesh = new THREE.Mesh(imageGeometry, imageMaterial);
+    imageMesh.position.set(0, 0, -0.001);
+    imageMesh.scale.x = -1;
+    envelopeGroup.add(imageMesh);
+
+    // ✅ High-Resolution Canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1024; // High resolution for sharp text
+    canvas.height = 1536;
+    ctx.scale(1, 1); // Makes the text clearer
+
+    // ✅ Background (Transparent)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // ✅ Load Font Properly
+    const font = new FontFace('PressStart2P', 'url(./PressStart2P.ttf)');
+
+    font.load().then((loadedFont) => {
+        document.fonts.add(loadedFont);
+        console.log("✅ Font Loaded Successfully");
+
+        // ✅ Set Font AFTER Loading
+        ctx.font = '60px PressStart2P';
+        ctx.fillStyle = '#000000'; // Funky Red Color
+        ctx.textAlign = 'center';
+
+        // ✅ Debug: Check if Text is Drawn
+        console.log("📝 Drawing Text...");
+        ctx.fillText(`Dear ${name},`, canvas.width / 2, 11 * canvas.height / 24);
+        ctx.fillText('You are invited!', canvas.width / 2, 13 * canvas.height / 24);
+
+        // ✅ Convert to Three.js Texture
+        const textTexture = new THREE.CanvasTexture(canvas);
+        textTexture.needsUpdate = true; // Ensures proper rendering
+        textTexture.flipY = false; // Prevents upside-down text
+
+        const textMaterial = new THREE.MeshBasicMaterial({ 
+            map: textTexture, 
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+
+        const textGeometry = new THREE.PlaneGeometry(5, 7);
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
+        // ✅ Position Text on the Image
+        textMesh.position.set(0, 0, -0.002); // Place slightly in front
+        textMesh.rotation.x = Math.PI;
+        textMesh.rotation.y = Math.PI;
+        envelopeGroup.add(textMesh);
+        console.log("🎉 Text Added to Scene!");
+    }).catch((err) => {
+        console.error("❌ Font Failed to Load", err);
+    });
+});
+
+
+
+        // 🌟 Envelope Rectangle (Back Cover)
+        const envelopeShape = new THREE.Shape();
+        envelopeShape.moveTo(-1.5, -2.25);
+        envelopeShape.lineTo(1.5, -2.25);
+        envelopeShape.lineTo(1.5, 2.25);
+        envelopeShape.lineTo(0, 1);
+        envelopeShape.lineTo(-1.5, 2.25);
+        envelopeShape.lineTo(-1.5, -2.25);
+
+        const envelopeGeometry = new THREE.ShapeGeometry(envelopeShape);
+        const envelopeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+        const envelopeBack = new THREE.Mesh(envelopeGeometry, envelopeMaterial);
+        envelopeBack.position.set(0, 0, 0.001); // Ensure it covers the image
+        envelopeGroup.add(envelopeBack);
+
+
+
+        // 🌟 Triangle Flaps (Top & Bottom)
+        function createTriangleFlap(yPosition, rotation) {
+            const triangleShape = new THREE.Shape();
+            triangleShape.moveTo(0, 1.5);
+            triangleShape.lineTo(-1.5, 0);
+            triangleShape.lineTo(1.5, 0);
+            triangleShape.lineTo(0, 1.5);
+
+            const triangleGeometry = new THREE.ShapeGeometry(triangleShape);
+            const flapMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+            const flap = new THREE.Mesh(triangleGeometry, flapMaterial);
+            flap.position.set(0, yPosition-0.01, 0.001);
+            flap.rotation.z = rotation;
+            return flap;
+        }
+
+        const topFlap = createTriangleFlap(2.25, Math.PI);
+        envelopeGroup.add(topFlap);
+
+        scene.add(envelopeGroup)
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function startJiggleAnimation() {
+    envelopeGroup.rotation.z = -0.1; // Ensure starting position
+
+    const jiggleTimeline = gsap.timeline({ repeat: -1, yoyo: true });
+
+    jiggleTimeline.to(envelopeGroup.rotation, { z: 0.1, duration: 0.2, ease: "power1.inOut" }) // Fast Jiggle 1
+                 .to(envelopeGroup.rotation, { z: -0.1, duration: 0.2, ease: "power1.inOut" }) // Fast Jiggle 2
+                 .to(envelopeGroup.rotation, { z: 0.1, duration: 0.7, ease: "power1.inOut" }) // Slower Jiggle 3
+                 .to(envelopeGroup.rotation, { z: -0.1, duration: 0.7, ease: "power1.inOut" }); // Return Slowly
+}
+        
+        startJiggleAnimation();
+
+        // 🌟 Click to Open Animation
+        let state = 0;
+        window.addEventListener('click', () => {
+            if(state == 0){
+                gsap.killTweensOf(envelopeGroup.rotation); 
+                gsap.to(envelopeGroup.rotation, { z: 0, y: 0, duration: 0.2 });
+                backButton.style.display = 'block';
+                gsap.to(scene.rotation, { y: scene.rotation.y + Math.PI, duration: 1, ease: "power2.inOut" });
+                sleep(600).then(() => {
+                    gsap.to(topFlap.rotation, {x: -Math.PI, duration: 0.6, ease: "power2.inOut" });
+                    sleep(500).then(() => {
+                        gsap.to(topFlap.position, {z:-0.001});
+                        gsap.to(envelopeGroup.position, { y: -10, duration: 1, ease: "power2.inOut" });
+                        sleep(500).then(() => {
+                            gsap.to(camera.position, {z: -6, duration:1, ease: "power1.inOut"});
+                            state = 1;
+                        })
+                    })
+                })
+             }
+             if(state == -1){
+                state = 0
+             }
+        });
+
+        window.resetScene =  function(){
+            backButton.style.display = 'none';
+            gsap.to(camera.position, {z: -10, duration:1, ease: "power1.inOut"});
+            gsap.to(envelopeGroup.position, { y: 0, duration: 1, ease: "power2.inOut" });
+            gsap.to(topFlap.position, {z:0.001});
+
+            sleep(600).then(() => {
+                gsap.to(topFlap.rotation, {x: 0, duration: 0.6, ease: "power2.inOut" });
+                sleep(600).then(() => {
+                    gsap.to(scene.rotation, { y: scene.rotation.y + Math.PI, duration: 1, ease: "power2.inOut" });
+                    sleep(600).then(() => {
+                        startJiggleAnimation();
+                    })
+                })
+            })
+            state = -1;
+        }
+
+        // 🌟 Orbit Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableRotate = false; // 🔹 Stops rotation with mouse
+        controls.enablePan = false;    // 🔹 Stops panning with mouse
+        controls.enableZoom = false;
+        controls.dispose();   
+
+        // 🌟 Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+    </script>
+</body>
+</html>

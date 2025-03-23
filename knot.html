@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Party Scene 🎉</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js",
+                "OrbitControls": "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/controls/OrbitControls.js",
+                "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.2/index.js"
+            }
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; background: black; }
+    </style>
+</head>
+<body>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'OrbitControls';
+    import gsap from 'gsap';
+
+    // 🌟 Scene, Camera & Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 2, 10);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // 🌟 Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const spotLight = new THREE.SpotLight(0xffffff, 2, 20, Math.PI / 6, 0.5, 2);
+    spotLight.position.set(0, 5, 5);
+    scene.add(spotLight);
+
+    // 🔥 Disco Ball (Reflective Sphere)
+    const discoMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        metalness: 1, 
+        roughness: 0 
+    });
+    const discoBall = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), discoMaterial);
+    discoBall.position.set(0, 4, 0);
+    scene.add(discoBall);
+
+    // 🎊 Floating Confetti
+    const confettiGroup = new THREE.Group();
+    for (let i = 0; i < 50; i++) {
+        const confetti = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.2, 0.5),
+            new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff, side: THREE.DoubleSide })
+        );
+        confetti.position.set(Math.random() * 6 - 3, Math.random() * 6 + 2, Math.random() * 6 - 3);
+        confettiGroup.add(confetti);
+    }
+    scene.add(confettiGroup);
+
+    // 🛏️ 3D Cradle (Swinging)
+    const cradleGroup = new THREE.Group();
+    const cradleBase = new THREE.Mesh(new THREE.BoxGeometry(2, 0.2, 1), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+    const cradleRopes = [
+        new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3), new THREE.MeshStandardMaterial({ color: 0xaaaaaa })),
+        new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3), new THREE.MeshStandardMaterial({ color: 0xaaaaaa }))
+    ];
+    cradleRopes[0].position.set(-0.8, 1.5, 0);
+    cradleRopes[1].position.set(0.8, 1.5, 0);
+    cradleBase.position.set(0, 0, 0);
+    cradleGroup.add(cradleBase, ...cradleRopes);
+    cradleGroup.position.set(0, 3, 0);
+    scene.add(cradleGroup);
+
+    // 🌟 Orbit Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // 🔄 Animation Loop
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // 🔥 Rotate Disco Ball
+        discoBall.rotation.y += 0.02;
+
+        // 🔥 Make Confetti Fall
+        confettiGroup.children.forEach(confetti => {
+            confetti.position.y -= 0.02;
+            if (confetti.position.y < 0) {
+                confetti.position.y = Math.random() * 6 + 2;
+            }
+        });
+
+        // 🔥 Swing Cradle
+        cradleGroup.rotation.z = Math.sin(Date.now() * 0.002) * 0.2;
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // 📌 Handle Window Resize
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+</script>
+
+</body>
+</html>
