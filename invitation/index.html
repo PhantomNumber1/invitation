@@ -94,19 +94,24 @@
             imageMesh.add(buttonMesh);  // Attach the button to the image
 
             // 🔹 Click Event Listener
-            window.addEventListener('click', (event) => {
-                // Convert mouse coordinates to Three.js normalized device coordinates
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            function handleInteraction(event) {
+            // Get normalized device coordinates
+            const touch = event.touches ? event.touches[0] : event;
+            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
 
-                // Raycast to check if the button is clicked
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(buttonMesh);
+            // Raycast to check if the button is clicked/touched
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(buttonMesh);
 
                 if (intersects.length > 0) {
                     window.location.href = "https://maps.app.goo.gl/RjWz2uFzydCKzeSx5";
                 }
-            });
+            }
+
+            // Add both click and touchstart event listeners
+            window.addEventListener('click', handleInteraction);
+            window.addEventListener('touchstart', handleInteraction);
         });
 
         textureLoader.load('yri.png', function(texture) {
